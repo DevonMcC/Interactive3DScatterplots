@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- ScatterPlot3D.tmplt: template for 3D interactive scatterplot -->
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><meta charset="utf-8">
+  
+<script src="ScatterPlot3D1_files/d3.js"></script>
+<script src="ScatterPlot3D1_files/dex.js"></script>
+<script src="ScatterPlot3D1_files/{thisScat3D}"></script>
+<script src="ScatterPlot3D1_files/myParallelCoords.js"></script>
+<script src="ScatterPlot3D1_files/three.js"></script>
+
+<style type="text/css">
+body 
+{ margin: 5px;
+  padding: 5px;
+}
+
+#ScatterPlot3D
+{ display:block;
+  float:left;
+}
+</style>
+
+<!-- raf.js -->
+<script src="ScatterPlot3D1_files/raf.js"></script>
+</head>
+
+<body>
+  <h3>{title}</h3>
+<table><tbody><tr><td id="scatter3d"><canvas style="width: 5px; height: 100px;" height="600" width="600"></canvas></td></tr></tbody></table>
+<script type="x-shader/x-vertex" id="vertexshader">
+uniform float amplitude;
+attribute float size;
+attribute vec3 customColor;
+
+varying vec3 vColor;
+
+void main()
+{ vColor = customColor;
+  vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+  //gl_PointSize = size;
+  gl_PointSize = size * ( 300.0 / length( mvPosition.xyz ) );
+  gl_Position = projectionMatrix * mvPosition;
+}
+</script>
+
+<script type="x-shader/x-fragment" id="fragmentshader">
+uniform vec3 color;
+uniform sampler2D texture;
+
+varying vec3 vColor;
+
+void main()
+{ gl_FragColor = vec4( color * vColor, 1.0 );
+  gl_FragColor = gl_FragColor * texture2D( texture, gl_PointCoord );
+}
+</script>
+<script>
+
+var svg = d3.select("#parCoord")
+  .append("svg")
+  .attr("width", 1)
+  .attr("height", 1)
+  .append("g")
+  .attr("transform", "translate(60,20)");
+
+var scatterParent = document.getElementById('scatter3d');
+
+var csv =
+{   'header' : ["X", "Y", "Z"],
+    'data'   : [{points}]
+};
+
+var pcChart = new my3DChart
+({'parent'  : svg,
+  'id'      : "ParChart",
+  'width'   : 800,
+  'height'  : 400,
+  'xoffset' : -100,
+  'yoffset' : 10,
+  'csv'     : csv
+});
+
+var scatterplot = new myScatterPlot3D
+({'parent' : scatterParent,
+  'csv'    : csv,
+  'height' : 800,
+  'width'  : 800
+});
+
+pcChart.addListener("select", scatterplot, function(chartEvent)
+{ dex.console.log("DATA", chartEvent.selected);
+  d3.selectAll("canvas").remove();
+  scatterplot.attr('csv', chartEvent.selected).update();
+});
+
+pcChart.render();
+scatterplot.render();
+
+</script></body></html>
